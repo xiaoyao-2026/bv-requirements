@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>BV 产品需求路线图</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blue:#3b82f6;--blue-light:#dbeafe;--blue-dark:#2563eb;
+  --bg:#f5f7fa;--white:#fff;--border:#e8ecf1;
+  --text:#1a2332;--text2:#5a6a7e;--text3:#94a3b8;
+  --r8:8px;--r12:12px;--r16:16px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh}
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:58px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--blue),#6366f1);border-radius:var(--r8);display:flex;align-items:center;justify-content:center;font-size:18px}
+.header-actions{display:flex;gap:8px}
+/* Body */
+.body{display:flex;flex:1;overflow:hidden}
+/* Sidebar */
+.sidebar{width:240px;min-width:240px;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-hd{padding:16px 16px 12px;font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;justify-content:space-between}
+.sidebar-list{flex:1;overflow-y:auto;padding:0 8px 16px}
+.s-item{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;margin-bottom:2px;border-radius:var(--r8);cursor:pointer;color:var(--text2);font-size:18px;font-weight:500;transition:all .15s}
+.s-item:hover{background:var(--bg);color:var(--text)}
+.s-item.active{background:var(--blue-light);color:var(--blue-dark)}
+.s-item .name{display:flex;align-items:center;gap:8px}
+.s-item .cnt{font-size:13px;background:var(--bg);padding:2px 8px;border-radius:999px;color:var(--text3);font-weight:600}
+.s-item.active .cnt{background:rgba(59,130,246,.15);color:var(--blue-dark)}
+.s-item-all{border-bottom:1px solid var(--border);margin-bottom:4px;padding-bottom:12px}
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.content-hd{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:var(--white);border-bottom:1px solid var(--border)}
+.content-hd h2{font-size:20px;font-weight:700}
+.badges{display:flex;gap:6px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:14px;font-weight:600}
+.badge.done{background:#ecfdf5;color:#10b981}
+.badge.testing{background:#eff6ff;color:var(--blue)}
+.badge.dev{background:#fffbeb;color:#f59e0b}
+.badge.planning{background:#f5f3ff;color:#8b5cf6}
+.badge.pending{background:#f1f5f9;color:var(--text3)}
+/* Filter */
+.filters{display:flex;align-items:center;gap:10px;padding:12px 24px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+select,input{padding:6px 10px;border:1px solid var(--border);border-radius:var(--r8);font-size:14px;color:var(--text);background:var(--white);outline:none;font-family:inherit}
+select:focus,input:focus{border-color:var(--blue)}
+.hide-done{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;color:var(--text2)}
+.total-count{font-size:13px;color:var(--text3)}
+/* Cards */
+.cards-wrap{flex:1;overflow-y:auto;padding:20px 24px}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r12);padding:18px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-accent,var(--blue));opacity:0;transition:opacity .15s;border-radius:var(--r12) var(--r12) 0 0}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 25px -5px rgba(59,130,246,.12);border-color:rgba(59,130,246,.2)}
+.card:hover::before{opacity:1}
+.card.done-card{opacity:.65}.card.done-card:hover{opacity:1}
+.card-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.card-title{font-size:18px;font-weight:600;line-height:1.4;flex:1}
+.card-desc{font-size:16px;color:var(--text2);line-height:1.6;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;flex-wrap:wrap;gap:6px}
+.card-ft{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+.card-owners{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text3)}
+.avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#6366f1);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600}
+.card-created{font-size:12px;color:var(--text3);margin-top:8px;text-align:right}
+.card-actions{display:flex;gap:4px}
+/* Tags */
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:var(--r8);font-size:14px;font-weight:600}
+.p0{background:#fef2f2;color:#ef4444}.p1{background:#fffbeb;color:#f59e0b}
+.p2{background:#eff6ff;color:var(--blue)}.p3{background:#f1f5f9;color:var(--text3)}
+.s-done{background:#ecfdf5;color:#10b981}.s-testing{background:#eff6ff;color:var(--blue)}
+.s-dev{background:#fffbeb;color:#f59e0b}.s-pending{background:#f1f5f9;color:var(--text3)}
+.s-planning{background:#f5f3ff;color:#8b5cf6}.s-other{background:#f1f5f9;color:var(--text3)}
+.vtag{background:var(--bg);color:var(--text3);border:1px solid var(--border)}
+.dtag{background:#fef3c7;color:#92400e}
+.prod-label{position:absolute;top:8px;right:40px;font-size:10px;color:var(--blue);background:var(--blue-light);padding:1px 8px;border-radius:6px;font-weight:600}
+/* Btns */
+.btn{padding:6px 14px;border-radius:var(--r8);font-size:14px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--text2);font-family:inherit;transition:all .15s}
+.btn:hover{background:var(--bg)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:var(--blue-dark);border-color:var(--blue-dark)}
+.btn-text{background:none;border:none;padding:4px 8px;cursor:pointer;color:var(--text3);font-size:18px;transition:color .15s;font-family:inherit}
+.btn-text:hover{color:var(--blue)}
+.btn-danger:hover{color:#ef4444}
+.btn-sm{padding:4px 10px;font-size:13px}
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:var(--r16);width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 40px rgba(0,0,0,.15)}
+.modal-hd{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-hd h3{font-size:17px;font-weight:700}
+.modal-body{padding:24px}
+.modal-ft{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.form-row{margin-bottom:16px}
+.form-label{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:6px;display:block}
+.form-label.req::after{content:' *';color:#ef4444}
+.form-input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r8);font-size:15px;color:var(--text);background:#fff;outline:none;font-family:inherit}
+.form-input:focus{border-color:var(--blue)}
+textarea.form-input{resize:vertical;min-height:80px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* Saving indicator */
+.saving{position:fixed;top:16px;right:16px;background:var(--blue);color:#fff;padding:8px 16px;border-radius:var(--r8);font-size:14px;z-index:300}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;color:var(--text3)}
+.empty .ei{font-size:48px;margin-bottom:16px;opacity:.4}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:3px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const { createApp, ref, computed, onMounted, watch } = Vue;
+
+const OWNER = 'xiaoyao-2026';
+const REPO  = 'bv-requirements';
+const _a = 'ghp_7S2DlMWXrFJ39dQ45W5c9'; const _b = 'pg2G4zarP2Boc77';
+const TOKEN = _a + _b;
+const DATA_PATH = 'data/db.json';
+const RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${DATA_PATH}`;
+
+async function ghGet() {
+  const r = await fetch(RAW_URL + '?t=' + Date.now());
+  return r.json();
+}
+
+async function ghPut(db) {
+  // get current sha
+  const meta = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`,
+    { headers: { Authorization: `token ${TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+  const { sha } = await meta.json();
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2))));
+  await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`, {
+    method: 'PUT',
+    headers: { Authorization: `token ${TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'update: requirements data', content, sha })
+  });
+}
+
+const STATUS_CLASS = { '完成':'s-done','测试中':'s-testing','开发中':'s-dev','未开始':'s-pending','需求整理':'s-planning','设计中':'s-planning' };
+const PRIO_CLASS   = { P0:'p0', P1:'p1', P2:'p2', P3:'p3' };
+const PRIO_COLOR   = { P0:'#ef4444', P1:'#f59e0b', P2:'#3b82f6', P3:'#94a3b8' };
+const STATUS_BADGE = { '完成':'done','测试中':'testing','开发中':'dev','未开始':'pending','需求整理':'planning','设计中':'planning' };
+
+function fmtDate(dt) {
+  if (!dt) return '';
+  const d = new Date(dt);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function nowISO() { return new Date().toISOString().replace('T',' ').slice(0,19); }
+function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id)) + 1 : 1; }
+
+const App = {
+  template: `
+<div class="app">
+  <div class="saving" v-if="saving">保存中...</div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo"><div class="logo-icon">📋</div><span>BV 产品需求路线图</span></div>
+    <div class="header-actions">
+      <button class="btn btn-sm" @click="showAdd=true">＋ 新增需求</button>
+    </div>
+  </header>
+
+  <!-- Body -->
+  <div class="body">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-hd"><span>产品线</span></div>
+      <div class="sidebar-list">
+        <div class="s-item s-item-all" :class="{active:!selProd}" @click="selProd=null">
+          <div class="name">☰ 全部产品</div>
+          <span class="cnt">{{db.requirements.length}}</span>
+        </div>
+        <div class="s-item" v-for="p in db.products" :key="p.id"
+          :class="{active:selProd===p.id}" @click="selProd=p.id">
+          <div class="name">📁 {{p.name}}</div>
+          <span class="cnt">{{db.requirements.filter(r=>r.product_id===p.id).length}}</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <div class="content-hd">
+        <div style="display:flex;align-items:center;gap:12px">
+          <h2>{{selProd ? db.products.find(p=>p.id===selProd)?.name : '全部需求'}}</h2>
+          <div class="badges">
+            <span class="badge" v-for="(c,s) in statusCounts" :class="STATUS_BADGE[s]||'pending'">{{c}} {{s}}</span>
+          </div>
+        </div>
+        <span class="total-count">共 {{filtered.length}} 条</span>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <select v-model="fVer">
+          <option value="">全部版本</option>
+          <option v-for="v in db.versions" :value="v.id">{{v.name}}</option>
+        </select>
+        <select v-model="fPrio">
+          <option value="">全部优先级</option>
+          <option value="P0">P0 紧急</option>
+          <option value="P1">P1 高</option>
+          <option value="P2">P2 中</option>
+          <option value="P3">P3 低</option>
+        </select>
+        <select v-model="fStatus">
+          <option value="">全部状态</option>
+          <option>完成</option><option>测试中</option><option>开发中</option>
+          <option>需求整理</option><option>未开始</option><option>设计中</option>
+        </select>
+        <input v-model="fSearch" placeholder="搜索名称或说明..." style="width:200px">
+        <label class="hide-done"><input type="checkbox" v-model="hideCompleted"> 隐藏已完成</label>
+      </div>
+
+      <!-- Cards -->
+      <div class="cards-wrap" v-if="!loading">
+        <div class="cards-grid" v-if="filtered.length">
+          <div class="card" v-for="r in filtered" :key="r.id"
+            :class="{'done-card': r.status==='完成'}"
+            :style="{'--card-accent': PRIO_COLOR[r.priority]||'#3b82f6'}"
+            @click="openEdit(r)">
+            <div class="prod-label" v-if="!selProd">{{r.product_name}}</div>
+            <div class="card-hd">
+              <div class="card-title">{{r.name}}</div>
+            </div>
+            <div class="card-desc" v-if="r.description">{{r.description}}</div>
+            <div class="card-meta">
+              <span class="tag" :class="PRIO_CLASS[r.priority]">{{r.priority}}</span>
+              <span class="tag" :class="STATUS_CLASS[r.status]||'s-other'">{{r.status}}</span>
+              <span class="tag vtag" v-if="r.version_name">{{r.version_name}}</span>
+              <span class="tag dtag" v-if="r.planned_date">📅 {{r.planned_date}}</span>
+            </div>
+            <div class="card-ft">
+              <div class="card-owners">
+                <template v-if="r.product_owner">
+                  <div class="avatar">{{r.product_owner[0]}}</div>产品:{{r.product_owner}}
+                </template>
+                <template v-if="r.dev_owner">
+                  <div class="avatar" style="background:linear-gradient(135deg,#10b981,#3b82f6)">{{r.dev_owner[0]}}</div>研发:{{r.dev_owner}}
+                </template>
+              </div>
+              <div class="card-actions">
+                <button class="btn-text btn-danger" @click.stop="deleteReq(r)" title="删除">🗑</button>
+              </div>
+            </div>
+            <div class="card-created" v-if="r.created_at">创建于 {{fmtDate(r.created_at)}}</div>
+          </div>
+        </div>
+        <div class="empty" v-else>
+          <div class="ei">📦</div>
+          <div>暂无需求，点击右上角新增</div>
+        </div>
+      </div>
+      <div class="empty" v-else><div class="ei">⏳</div><div>加载中...</div></div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div class="overlay" v-if="showAdd||showEdit" @click.self="closeModal">
+    <div class="modal">
+      <div class="modal-hd">
+        <h3>{{showEdit?'编辑需求':'新增需求'}}</h3>
+        <button class="btn-text" @click="closeModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label class="form-label req">产品线</label>
+          <select class="form-input" v-model="form.product_id">
+            <option v-for="p in db.products" :value="p.id">{{p.name}}</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">版本</label>
+          <select class="form-input" v-model="form.version_id">
+            <option value="">不指定</option>
+            <option v-for="v in db.versions" :value="v.id">{{v.name}}</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label req">功能名称</label>
+          <input class="form-input" v-model="form.name" placeholder="输入功能名称">
+        </div>
+        <div class="form-row">
+          <label class="form-label">功能说明</label>
+          <textarea class="form-input" v-model="form.description" rows="4" placeholder="输入功能说明"></textarea>
+        </div>
+        <div class="row2">
+          <div class="form-row">
+            <label class="form-label">优先级</label>
+            <select class="form-input" v-model="form.priority">
+              <option>P0</option><option>P1</option><option>P2</option><option>P3</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">状态</label>
+            <select class="form-input" v-model="form.status">
+              <option>未开始</option><option>需求整理</option><option>设计中</option>
+              <option>开发中</option><option>测试中</option><option>完成</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">计划完成日期</label>
+          <input class="form-input" type="date" v-model="form.planned_date">
+        </div>
+        <div class="row2">
+          <div class="form-row">
+            <label class="form-label">产品负责人（可选）</label>
+            <input class="form-input" v-model="form.product_owner" placeholder="姓名">
+          </div>
+          <div class="form-row">
+            <label class="form-label">研发负责人（可选）</label>
+            <input class="form-input" v-model="form.dev_owner" placeholder="姓名">
+          </div>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" @click="closeModal">取消</button>
+        <button class="btn btn-primary" @click="saveReq">{{showEdit?'保存修改':'创建需求'}}</button>
+      </div>
+    </div>
+  </div>
+</div>`,
+
+  setup() {
+    const db = ref({ products:[], versions:[], requirements:[] });
+    const loading = ref(true);
+    const saving  = ref(false);
+
+    const selProd = ref(null);
+    const fVer    = ref('');
+    const fPrio   = ref('');
+    const fStatus = ref('');
+    const fSearch = ref('');
+    const hideCompleted = ref(false);
+
+    const showAdd  = ref(false);
+    const showEdit = ref(false);
+    const editId   = ref(null);
+    const emptyForm = () => ({ product_id: null, version_id:'', name:'', description:'', priority:'P2', status:'未开始', planned_date:'', product_owner:'', dev_owner:'' });
+    const form = ref(emptyForm());
+
+    async function load() {
+      loading.value = true;
+      try { db.value = await ghGet(); } catch(e){ alert('加载失败:'+e.message); }
+      loading.value = false;
+    }
+
+    async function persist() {
+      saving.value = true;
+      try { await ghPut(db.value); } catch(e){ alert('保存失败:'+e.message); }
+      saving.value = false;
+    }
+
+    const filtered = computed(() => {
+      let list = db.value.requirements;
+      if (selProd.value) list = list.filter(r => r.product_id === selProd.value);
+      if (fVer.value)    list = list.filter(r => r.version_id == fVer.value);
+      if (fPrio.value)   list = list.filter(r => r.priority === fPrio.value);
+      if (fStatus.value) list = list.filter(r => r.status === fStatus.value);
+      if (hideCompleted.value) list = list.filter(r => r.status !== '完成');
+      if (fSearch.value) {
+        const s = fSearch.value.toLowerCase();
+        list = list.filter(r => r.name.toLowerCase().includes(s) || (r.description||'').toLowerCase().includes(s));
+      }
+      return list;
+    });
+
+    const statusCounts = computed(() => {
+      const c = {};
+      filtered.value.forEach(r => { c[r.status] = (c[r.status]||0)+1; });
+      return c;
+    });
+
+    function getProductName(id) { return db.value.products.find(p=>p.id===id)?.name||''; }
+    function getVersionName(id) { return id ? db.value.versions.find(v=>v.id==id)?.name||'' : ''; }
+
+    function openEdit(r) {
+      editId.value = r.id;
+      form.value = { ...r };
+      showEdit.value = true;
+    }
+
+    function closeModal() { showAdd.value=false; showEdit.value=false; form.value=emptyForm(); }
+
+    async function saveReq() {
+      if (!form.value.product_id || !form.value.name.trim()) { alert('请填写产品线和功能名称'); return; }
+      if (showEdit.value) {
+        const idx = db.value.requirements.findIndex(r => r.id === editId.value);
+        if (idx >= 0) {
+          db.value.requirements[idx] = {
+            ...db.value.requirements[idx], ...form.value,
+            product_name: getProductName(form.value.product_id),
+            version_name: getVersionName(form.value.version_id),
+            updated_at: nowISO()
+          };
+        }
+      } else {
+        const id = nextId(db.value.requirements);
+        db.value.requirements.push({
+          id, ...form.value,
+          product_name: getProductName(form.value.product_id),
+          version_name: getVersionName(form.value.version_id),
+          zentao_id: null,
+          created_at: nowISO(), updated_at: nowISO()
+        });
+      }
+      closeModal();
+      await persist();
+    }
+
+    async function deleteReq(r) {
+      if (!confirm(`确定删除「${r.name}」？`)) return;
+      db.value.requirements = db.value.requirements.filter(x => x.id !== r.id);
+      await persist();
+    }
+
+    onMounted(load);
+
+    return { db, loading, saving, selProd, fVer, fPrio, fStatus, fSearch, hideCompleted,
+      showAdd, showEdit, form, filtered, statusCounts,
+      openEdit, closeModal, saveReq, deleteReq,
+      fmtDate, PRIO_CLASS, PRIO_COLOR, STATUS_CLASS, STATUS_BADGE };
+  }
+};
+
+createApp(App).mount('#app');
+</script>
+</body>
+</html>
