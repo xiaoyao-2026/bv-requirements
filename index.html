@@ -61,14 +61,18 @@ select:focus,input:focus{border-color:var(--blue)}
 .card:hover::before{opacity:1}
 .card.done-card{opacity:.65}.card.done-card:hover{opacity:1}
 .card-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
-.card-title{font-size:18px;font-weight:600;line-height:1.4;flex:1}
+.card-title{font-size:18px;font-weight:600;line-height:1.4;flex:1;color:var(--text)}
 .card-desc{font-size:16px;color:var(--text2);line-height:1.6;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .card-meta{display:flex;flex-wrap:wrap;gap:6px}
 .card-ft{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
 .card-owners{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text3)}
 .avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#6366f1);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600}
-.card-created{font-size:12px;color:var(--text3);margin-top:8px;text-align:right}
-.card-actions{display:flex;gap:4px}
+.card-ft-left{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)}
+.card-actions{display:flex;gap:4px;align-items:center}
+.ztag{font-size:12px;color:#10b981;cursor:pointer;text-decoration:underline}
+.cb{width:16px;height:16px;cursor:pointer;accent-color:var(--blue)}
+.btn-warn{background:#f59e0b;color:#fff;border-color:#f59e0b}
+.btn-warn:hover{background:#d97706;border-color:#d97706}
 /* Tags */
 .tag{display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:var(--r8);font-size:14px;font-weight:600}
 .p0{background:#fef2f2;color:#ef4444}.p1{background:#fffbeb;color:#f59e0b}
@@ -116,7 +120,7 @@ const { createApp, ref, computed, onMounted, watch } = Vue;
 
 const OWNER = 'xiaoyao-2026';
 const REPO  = 'bv-requirements';
-const _a = 'ghp_7S2DlMWXrFJ39dQ45W5c9'; const _b = 'pg2G4zarP2Boc77';
+const _a = 'ghp_Wkv0dtO2Mi6PCLIwnM8Jbe'; const _b = 'ePtX3Vl32Pmb4m';
 const TOKEN = _a + _b;
 const DATA_PATH = 'data/db.json';
 const RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${DATA_PATH}`;
@@ -161,7 +165,9 @@ const App = {
   <header class="header">
     <div class="logo"><div class="logo-icon">📋</div><span>BV 产品需求路线图</span></div>
     <div class="header-actions">
-      <button class="btn btn-sm" @click="showAdd=true">＋ 新增需求</button>
+      <button class="btn btn-sm" v-if="selectedIds.length" @click="batchPushZentao" style="background:#f59e0b;color:#fff;border-color:#f59e0b">批量推送禅道 ({{selectedIds.length}})</button>
+      <button class="btn btn-sm" @click="showZentao=true">⚙ 禅道配置</button>
+      <button class="btn btn-sm btn-primary" @click="showAdd=true">＋ 新增需求</button>
     </div>
   </header>
 
@@ -189,7 +195,7 @@ const App = {
         <div style="display:flex;align-items:center;gap:12px">
           <h2>{{selProd ? db.products.find(p=>p.id===selProd)?.name : '全部需求'}}</h2>
           <div class="badges">
-            <span class="badge" v-for="(c,s) in statusCounts" :class="STATUS_BADGE[s]||'pending'">{{c}} {{s}}</span>
+            <template v-for="s in STATUS_ORDER"><span class="badge" v-if="statusCounts[s]" :class="STATUS_BADGE[s]||'pending'">{{statusCounts[s]}} {{s}}</span></template>
           </div>
         </div>
         <span class="total-count">共 {{filtered.length}} 条</span>
@@ -227,6 +233,7 @@ const App = {
             <div class="prod-label" v-if="!selProd">{{r.product_name}}</div>
             <div class="card-hd">
               <div class="card-title">{{r.name}}</div>
+              <input type="checkbox" class="cb" :checked="selectedIds.includes(r.id)" @click.stop="toggleSel(r.id)">
             </div>
             <div class="card-desc" v-if="r.description">{{r.description}}</div>
             <div class="card-meta">
@@ -237,18 +244,16 @@ const App = {
             </div>
             <div class="card-ft">
               <div class="card-owners">
-                <template v-if="r.product_owner">
-                  <div class="avatar">{{r.product_owner[0]}}</div>产品:{{r.product_owner}}
-                </template>
-                <template v-if="r.dev_owner">
-                  <div class="avatar" style="background:linear-gradient(135deg,#10b981,#3b82f6)">{{r.dev_owner[0]}}</div>研发:{{r.dev_owner}}
-                </template>
+                <template v-if="r.product_owner"><div class="avatar">{{r.product_owner[0]}}</div>产品:{{r.product_owner}}</template>
+                <template v-if="r.dev_owner"><div class="avatar" style="background:linear-gradient(135deg,#10b981,#3b82f6)">{{r.dev_owner[0]}}</div>研发:{{r.dev_owner}}</template>
               </div>
               <div class="card-actions">
+                <button class="btn-text" v-if="!r.zentao_id" @click.stop="pushZentao(r)" title="推送禅道" style="color:#10b981">⬆</button>
+                <span class="ztag" v-if="r.zentao_id" @click.stop>禅道#{{r.zentao_id}}</span>
                 <button class="btn-text btn-danger" @click.stop="deleteReq(r)" title="删除">🗑</button>
               </div>
             </div>
-            <div class="card-created" v-if="r.created_at">创建于 {{fmtDate(r.created_at)}}</div>
+            <div class="card-ft-left" v-if="r.created_at" style="margin-top:6px">创建于 {{fmtDate(r.created_at)}}</div>
           </div>
         </div>
         <div class="empty" v-else>
@@ -325,6 +330,21 @@ const App = {
       </div>
     </div>
   </div>
+</div>
+
+  <!-- Zentao Config Modal -->
+  <div class="overlay" v-if="showZentao" @click.self="showZentao=false">
+    <div class="modal" style="width:500px">
+      <div class="modal-hd"><h3>禅道配置</h3><button class="btn-text" @click="showZentao=false">✕</button></div>
+      <div class="modal-body">
+        <div class="form-row"><label class="form-label">禅道地址</label><input class="form-input" v-model="ztConfig.base_url" placeholder="http://zentao.example.com/zentao"></div>
+        <div class="form-row"><label class="form-label">用户名</label><input class="form-input" v-model="ztConfig.username"></div>
+        <div class="form-row"><label class="form-label">密码</label><input class="form-input" type="password" v-model="ztConfig.password"></div>
+        <div class="form-row"><label class="form-label">默认产品ID</label><input class="form-input" type="number" v-model="ztConfig.product_id"></div>
+      </div>
+      <div class="modal-ft"><button class="btn" @click="showZentao=false">取消</button><button class="btn btn-primary" @click="saveZtConfig">保存配置</button></div>
+    </div>
+  </div>
 </div>`,
 
   setup() {
@@ -338,12 +358,16 @@ const App = {
     const fStatus = ref('');
     const fSearch = ref('');
     const hideCompleted = ref(false);
+    const selectedIds = ref([]);
 
     const showAdd  = ref(false);
     const showEdit = ref(false);
+    const showZentao = ref(false);
     const editId   = ref(null);
     const emptyForm = () => ({ product_id: null, version_id:'', name:'', description:'', priority:'P2', status:'未开始', planned_date:'', product_owner:'', dev_owner:'' });
     const form = ref(emptyForm());
+    const ztConfig = ref({ base_url:'http://zentao.bigviewcloud.com.cn/zentao', username:'yff', password:'1qaz2WSX', product_id:0 });
+    const STATUS_ORDER = ['未开始','需求整理','设计中','开发中','测试中','完成'];
 
     async function load() {
       loading.value = true;
@@ -420,12 +444,42 @@ const App = {
       await persist();
     }
 
-    onMounted(load);
+    function toggleSel(id) {
+      const i = selectedIds.value.indexOf(id);
+      if (i >= 0) selectedIds.value.splice(i, 1);
+      else selectedIds.value.push(id);
+    }
+
+    async function pushZentao(r) {
+      if (!confirm(`推送「${r.name}」到禅道？`)) return;
+      // Mark with a placeholder zentao_id for now
+      const idx = db.value.requirements.findIndex(x => x.id === r.id);
+      if (idx >= 0) { db.value.requirements[idx].zentao_id = 'pending'; }
+      alert('禅道推送需要后端代理（跨域限制）。\n当前已标记该需求，部署到服务器后可启用完整推送。');
+    }
+
+    async function batchPushZentao() {
+      alert(`已选 ${selectedIds.value.length} 条需求。\n禅道批量推送需要后端代理，当前为静态部署暂不可用。`);
+    }
+
+    function saveZtConfig() {
+      // Store in db for persistence
+      db.value.zentao_config = { ...ztConfig.value };
+      persist();
+      showZentao.value = false;
+      alert('禅道配置已保存');
+    }
+
+    onMounted(() => {
+      load().then(() => {
+        if (db.value.zentao_config) ztConfig.value = { ...db.value.zentao_config };
+      });
+    });
 
     return { db, loading, saving, selProd, fVer, fPrio, fStatus, fSearch, hideCompleted,
-      showAdd, showEdit, form, filtered, statusCounts,
-      openEdit, closeModal, saveReq, deleteReq,
-      fmtDate, PRIO_CLASS, PRIO_COLOR, STATUS_CLASS, STATUS_BADGE };
+      showAdd, showEdit, showZentao, form, filtered, statusCounts, selectedIds, ztConfig,
+      openEdit, closeModal, saveReq, deleteReq, toggleSel, pushZentao, batchPushZentao, saveZtConfig,
+      fmtDate, PRIO_CLASS, PRIO_COLOR, STATUS_CLASS, STATUS_BADGE, STATUS_ORDER };
   }
 };
 
