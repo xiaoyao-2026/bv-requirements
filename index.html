@@ -165,9 +165,7 @@ const App = {
   <header class="header">
     <div class="logo"><div class="logo-icon">📋</div><span>BV 产品需求路线图</span></div>
     <div class="header-actions">
-      <button class="btn btn-sm" v-if="selectedIds.length" @click="batchPushZentao" style="background:#f59e0b;color:#fff;border-color:#f59e0b">批量推送禅道 ({{selectedIds.length}})</button>
       <button class="btn btn-sm" @click="showZentao=true">⚙ 禅道配置</button>
-      <button class="btn btn-sm btn-primary" @click="showAdd=true">＋ 新增需求</button>
     </div>
   </header>
 
@@ -194,11 +192,16 @@ const App = {
       <div class="content-hd">
         <div style="display:flex;align-items:center;gap:12px">
           <h2>{{selProd ? db.products.find(p=>p.id===selProd)?.name : '全部需求'}}</h2>
+          <span class="total-count">共 {{filtered.length}} 条</span>
           <div class="badges">
             <template v-for="s in STATUS_ORDER"><span class="badge" v-if="statusCounts[s]" :class="STATUS_BADGE[s]||'pending'">{{statusCounts[s]}} {{s}}</span></template>
           </div>
         </div>
-        <span class="total-count">共 {{filtered.length}} 条</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm" v-if="selectedIds.length" @click="batchPushZentao" style="background:#f59e0b;color:#fff;border-color:#f59e0b">批量推送禅道 ({{selectedIds.length}})</button>
+          <button class="btn btn-sm" v-if="selectedIds.length" @click="batchDelete" style="background:#ef4444;color:#fff;border-color:#ef4444">批量删除 ({{selectedIds.length}})</button>
+          <button class="btn btn-sm btn-primary" @click="showAdd=true">＋ 新增需求</button>
+        </div>
       </div>
 
       <!-- Filters -->
@@ -247,13 +250,15 @@ const App = {
                 <template v-if="r.product_owner"><div class="avatar">{{r.product_owner[0]}}</div>产品:{{r.product_owner}}</template>
                 <template v-if="r.dev_owner"><div class="avatar" style="background:linear-gradient(135deg,#10b981,#3b82f6)">{{r.dev_owner[0]}}</div>研发:{{r.dev_owner}}</template>
               </div>
+            </div>
+            <div class="card-ft" style="border-top:none;padding-top:4px;margin-top:4px">
+              <span class="card-ft-left" v-if="r.created_at">创建于 {{fmtDate(r.created_at)}}</span>
               <div class="card-actions">
                 <button class="btn-text" v-if="!r.zentao_id" @click.stop="pushZentao(r)" title="推送禅道" style="color:#10b981">⬆</button>
                 <span class="ztag" v-if="r.zentao_id" @click.stop>禅道#{{r.zentao_id}}</span>
                 <button class="btn-text btn-danger" @click.stop="deleteReq(r)" title="删除">🗑</button>
               </div>
             </div>
-            <div class="card-ft-left" v-if="r.created_at" style="margin-top:6px">创建于 {{fmtDate(r.created_at)}}</div>
           </div>
         </div>
         <div class="empty" v-else>
@@ -357,7 +362,7 @@ const App = {
     const fPrio   = ref('');
     const fStatus = ref('');
     const fSearch = ref('');
-    const hideCompleted = ref(false);
+    const hideCompleted = ref(true);
     const selectedIds = ref([]);
 
     const showAdd  = ref(false);
@@ -462,6 +467,13 @@ const App = {
       alert(`已选 ${selectedIds.value.length} 条需求。\n禅道批量推送需要后端代理，当前为静态部署暂不可用。`);
     }
 
+    async function batchDelete() {
+      if (!confirm(`确定删除选中的 ${selectedIds.value.length} 条需求？`)) return;
+      db.value.requirements = db.value.requirements.filter(x => !selectedIds.value.includes(x.id));
+      selectedIds.value = [];
+      await persist();
+    }
+
     function saveZtConfig() {
       // Store in db for persistence
       db.value.zentao_config = { ...ztConfig.value };
@@ -478,7 +490,7 @@ const App = {
 
     return { db, loading, saving, selProd, fVer, fPrio, fStatus, fSearch, hideCompleted,
       showAdd, showEdit, showZentao, form, filtered, statusCounts, selectedIds, ztConfig,
-      openEdit, closeModal, saveReq, deleteReq, toggleSel, pushZentao, batchPushZentao, saveZtConfig,
+      openEdit, closeModal, saveReq, deleteReq, toggleSel, pushZentao, batchPushZentao, batchDelete, saveZtConfig,
       fmtDate, PRIO_CLASS, PRIO_COLOR, STATUS_CLASS, STATUS_BADGE, STATUS_ORDER };
   }
 };
