@@ -73,6 +73,10 @@ select:focus,input:focus{border-color:var(--blue)}
 .cb{width:16px;height:16px;cursor:pointer;accent-color:var(--blue)}
 .btn-warn{background:#f59e0b;color:#fff;border-color:#f59e0b}
 .btn-warn:hover{background:#d97706;border-color:#d97706}
+.proxy-status{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--r8);font-size:14px;margin-bottom:12px}
+.proxy-ok{background:#ecfdf5;color:#10b981;border:1px solid #a7f3d0}
+.proxy-err{background:#fef2f2;color:#ef4444;border:1px solid #fecaca}
+.proxy-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
 /* Tags */
 .tag{display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:var(--r8);font-size:14px;font-weight:600}
 .p0{background:#fef2f2;color:#ef4444}.p1{background:#fffbeb;color:#f59e0b}
@@ -339,15 +343,59 @@ const App = {
 
   <!-- Zentao Config Modal -->
   <div class="overlay" v-if="showZentao" @click.self="showZentao=false">
-    <div class="modal" style="width:500px">
+    <div class="modal" style="width:520px">
       <div class="modal-hd"><h3>禅道配置</h3><button class="btn-text" @click="showZentao=false">✕</button></div>
       <div class="modal-body">
-        <div class="form-row"><label class="form-label">禅道地址</label><input class="form-input" v-model="ztConfig.base_url" placeholder="http://zentao.example.com/zentao"></div>
+        <div class="proxy-status" :class="proxyOnline?'proxy-ok':'proxy-err'">
+          <span class="proxy-dot"></span>
+          <span v-if="proxyOnline">本地代理已运行（端口 9998），禅道推送可用</span>
+          <span v-else>本地代理未启动，请运行: <code>node zentao-proxy.js</code></span>
+          <button class="btn btn-sm" style="margin-left:auto;padding:2px 10px" @click="checkProxy">刷新</button>
+        </div>
+        <div class="form-row"><label class="form-label">禅道地址</label><input class="form-input" v-model="ztConfig.base_url"></div>
         <div class="form-row"><label class="form-label">用户名</label><input class="form-input" v-model="ztConfig.username"></div>
         <div class="form-row"><label class="form-label">密码</label><input class="form-input" type="password" v-model="ztConfig.password"></div>
-        <div class="form-row"><label class="form-label">默认产品ID</label><input class="form-input" type="number" v-model="ztConfig.product_id"></div>
+        <div class="form-row">
+          <label class="form-label">默认禅道产品ID（可选）</label>
+          <input class="form-input" type="number" v-model="ztConfig.product_id" placeholder="直接输入禅道产品ID">
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">不填则推送时手动选择禅道产品</div>
+        </div>
       </div>
       <div class="modal-ft"><button class="btn" @click="showZentao=false">取消</button><button class="btn btn-primary" @click="saveZtConfig">保存配置</button></div>
+    </div>
+  </div>
+
+  <!-- Zentao Push Dialog -->
+  <div class="overlay" v-if="showPushDlg" @click.self="showPushDlg=false">
+    <div class="modal" style="width:480px">
+      <div class="modal-hd"><h3>推送到禅道</h3><button class="btn-text" @click="showPushDlg=false">✕</button></div>
+      <div class="modal-body">
+        <div class="proxy-status" :class="proxyOnline?'proxy-ok':'proxy-err'" style="margin-bottom:16px">
+          <span class="proxy-dot"></span>
+          <span>{{proxyOnline ? '代理已连接' : '代理未启动，请先运行 zentao-proxy.js'}}</span>
+        </div>
+        <div class="form-row" v-if="pushTarget">
+          <label class="form-label">需求</label>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">{{pushTarget.length ? pushTarget.length+' 条需求' : pushTarget.name}}</div>
+        </div>
+        <div class="form-row">
+          <label class="form-label req">禅道产品</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" v-model="pushProdId" type="number" placeholder="产品ID" style="width:110px">
+            <input class="form-input" v-model="pushProdName" placeholder="或输入产品名称（不存在则新建）" style="flex:1">
+          </div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">提供 ID 或名称之一即可，ID 优先</div>
+        </div>
+        <div style="font-size:13px;color:var(--text3);background:var(--bg);padding:10px;border-radius:var(--r8)">
+          示例: ARC实景监控系统 → ID=12 或 名称="ARC实景监控系统"
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" @click="showPushDlg=false">取消</button>
+        <button class="btn btn-primary" :disabled="pushing||!proxyOnline" @click="confirmPush">
+          {{pushing ? '推送中...' : '确认推送'}}
+        </button>
+      </div>
     </div>
   </div>
 </div>`,
@@ -371,8 +419,16 @@ const App = {
     const editId   = ref(null);
     const emptyForm = () => ({ product_id: null, version_id:'', name:'', description:'', priority:'P2', status:'未开始', planned_date:'', product_owner:'', dev_owner:'' });
     const form = ref(emptyForm());
-    const ztConfig = ref({ base_url:'http://zentao.bigviewcloud.com.cn/zentao', username:'yff', password:'1qaz2WSX', product_id:0 });
+    const ztConfig = ref({ base_url:'http://zentao.bigviewcloud.com.cn/zentao', username:'yff', password:'1qaz2WSX', product_id:12 });
     const STATUS_ORDER = ['未开始','需求整理','设计中','开发中','测试中','完成'];
+
+    const proxyOnline = ref(false);
+    const showPushDlg = ref(false);
+    const pushTarget  = ref(null);   // single req obj or array for batch
+    const pushProdId  = ref(12);
+    const pushProdName = ref('实景监控系统');
+    const pushing     = ref(false);
+    const PROXY = 'http://localhost:9998';
 
     async function load() {
       loading.value = true;
@@ -455,16 +511,80 @@ const App = {
       else selectedIds.value.push(id);
     }
 
-    async function pushZentao(r) {
-      if (!confirm(`推送「${r.name}」到禅道？`)) return;
-      // Mark with a placeholder zentao_id for now
-      const idx = db.value.requirements.findIndex(x => x.id === r.id);
-      if (idx >= 0) { db.value.requirements[idx].zentao_id = 'pending'; }
-      alert('禅道推送需要后端代理（跨域限制）。\n当前已标记该需求，部署到服务器后可启用完整推送。');
+    async function checkProxy() {
+      try {
+        const r = await fetch(PROXY + '/health', { signal: AbortSignal.timeout(3000) });
+        proxyOnline.value = r.ok;
+      } catch { proxyOnline.value = false; }
     }
 
-    async function batchPushZentao() {
-      alert(`已选 ${selectedIds.value.length} 条需求。\n禅道批量推送需要后端代理，当前为静态部署暂不可用。`);
+    function pushZentao(r) {
+      pushTarget.value = r;
+      pushProdId.value = ztConfig.value.product_id || 12;
+      pushProdName.value = '';
+      showPushDlg.value = true;
+    }
+
+    function batchPushZentao() {
+      const reqs = db.value.requirements.filter(x => selectedIds.value.includes(x.id));
+      pushTarget.value = reqs;
+      pushProdId.value = ztConfig.value.product_id || 12;
+      pushProdName.value = '';
+      showPushDlg.value = true;
+    }
+
+    async function confirmPush() {
+      if (!pushProdId.value && !pushProdName.value) {
+        alert('请输入禅道产品 ID 或名称'); return;
+      }
+      pushing.value = true;
+      try {
+        const payload = {
+          username: ztConfig.value.username,
+          password: ztConfig.value.password,
+          zentaoProductId: pushProdId.value || null,
+          zentaoProductName: pushProdName.value || null,
+        };
+
+        if (Array.isArray(pushTarget.value)) {
+          // batch push
+          const res = await fetch(PROXY + '/batch-push', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, requirements: pushTarget.value })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || '推送失败');
+          // Update zentao_ids
+          data.results.forEach(r => {
+            if (r.success) {
+              const idx = db.value.requirements.findIndex(x => x.id === r.id);
+              if (idx >= 0) db.value.requirements[idx].zentao_id = r.zentao_id;
+            }
+          });
+          const ok = data.results.filter(r => r.success).length;
+          const fail = data.results.filter(r => !r.success).length;
+          alert(`批量推送完成: ${ok} 成功, ${fail} 失败`);
+          selectedIds.value = [];
+        } else {
+          // single push
+          const res = await fetch(PROXY + '/push', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, requirement: pushTarget.value })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || '推送失败');
+          // Update local zentao_id
+          const idx = db.value.requirements.findIndex(x => x.id === pushTarget.value.id);
+          if (idx >= 0) db.value.requirements[idx].zentao_id = data.zentao_id;
+          alert(`推送成功! 禅道需求 ID: #${data.zentao_id}`);
+        }
+        showPushDlg.value = false;
+        await persist();
+      } catch (e) {
+        alert('推送失败: ' + e.message);
+      } finally {
+        pushing.value = false;
+      }
     }
 
     async function batchDelete() {
@@ -485,12 +605,17 @@ const App = {
     onMounted(() => {
       load().then(() => {
         if (db.value.zentao_config) ztConfig.value = { ...db.value.zentao_config };
+        checkProxy();
+        // Check proxy every 30s
+        setInterval(checkProxy, 30000);
       });
     });
 
     return { db, loading, saving, selProd, fVer, fPrio, fStatus, fSearch, hideCompleted,
-      showAdd, showEdit, showZentao, form, filtered, statusCounts, selectedIds, ztConfig,
-      openEdit, closeModal, saveReq, deleteReq, toggleSel, pushZentao, batchPushZentao, batchDelete, saveZtConfig,
+      showAdd, showEdit, showZentao, showPushDlg, form, filtered, statusCounts, selectedIds,
+      ztConfig, proxyOnline, pushTarget, pushProdId, pushProdName, pushing,
+      openEdit, closeModal, saveReq, deleteReq, toggleSel,
+      pushZentao, batchPushZentao, confirmPush, checkProxy, batchDelete, saveZtConfig,
       fmtDate, PRIO_CLASS, PRIO_COLOR, STATUS_CLASS, STATUS_BADGE, STATUS_ORDER };
   }
 };
