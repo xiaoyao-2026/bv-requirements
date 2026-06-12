@@ -1304,19 +1304,19 @@
     {
       "id": 72,
       "product_id": 1,
-      "version_id": "",
-      "name": "124",
-      "description": "235346",
+      "version_id": 10,
+      "name": "1234",
+      "description": "135346775",
       "priority": "P2",
       "status": "未开始",
       "planned_date": "",
       "product_owner": "",
       "dev_owner": "",
       "product_name": "ARC",
-      "version_name": "",
+      "version_name": "1.9版本",
       "zentao_id": null,
-      "created_at": "2026-06-12 08:39:14",
-      "updated_at": "2026-06-12 08:39:14"
+      "created_at": "2026-06-12 08:39:58",
+      "updated_at": "2026-06-12 08:39:58"
     }
   ]
 }
