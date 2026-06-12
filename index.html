@@ -73,7 +73,7 @@ select:focus,input:focus{border-color:var(--blue)}
 .card-owners{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text3)}
 .avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#6366f1);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600}
 .card-ft-left{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)}
-.card-actions{display:flex;gap:4px;align-items:center}
+.card-actions{display:flex;gap:2px;align-items:center}
 .ztag{font-size:12px;color:#10b981;cursor:pointer;text-decoration:underline}
 .cb{width:16px;height:16px;cursor:pointer;accent-color:var(--blue)}
 .btn-warn{background:#f59e0b;color:#fff;border-color:#f59e0b}
@@ -97,10 +97,18 @@ select:focus,input:focus{border-color:var(--blue)}
 .btn:hover{background:var(--bg)}
 .btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 .btn-primary:hover{background:var(--blue-dark);border-color:var(--blue-dark)}
-.btn-text{background:none;border:none;padding:4px 8px;cursor:pointer;color:var(--text3);font-size:18px;transition:color .15s;font-family:inherit}
-.btn-text:hover{color:var(--blue)}
-.btn-danger:hover{color:#ef4444}
 .btn-sm{padding:4px 10px;font-size:13px}
+/* Icon Buttons - unified linear style */
+.icon-btn{background:none;border:none;padding:4px;cursor:pointer;color:var(--text3);transition:color .15s;display:inline-flex;align-items:center;justify-content:center;border-radius:4px}
+.icon-btn:hover{color:var(--blue);background:var(--bg)}
+.icon-btn.danger:hover{color:#ef4444;background:#fef2f2}
+.icon-btn.success:hover{color:#10b981;background:#ecfdf5}
+.icon-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.s-actions .icon-btn svg{width:16px;height:16px}
+/* Inline status select */
+.status-sel{padding:2px 6px;border:1px solid transparent;border-radius:var(--r8);font-size:13px;font-weight:600;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;padding-right:16px;transition:border-color .15s}
+.status-sel:hover{border-color:var(--border)}
+.status-sel:focus{border-color:var(--blue);outline:none}
 /* Modal */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;display:flex;align-items:center;justify-content:center}
 .modal{background:#fff;border-radius:var(--r16);width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 40px rgba(0,0,0,.15)}
@@ -192,8 +200,8 @@ const App = {
           :class="{active:selProd===p.id}" @click="selProd=p.id">
           <div class="name">📁 <span>{{p.name}}</span></div>
           <div class="s-actions" @click.stop>
-            <button class="btn-text" @click="openRenameProd(p)" title="重命名">✏️</button>
-            <button class="btn-text btn-danger" @click="deleteProd(p)" title="删除">🗑</button>
+            <button class="icon-btn" @click="openRenameProd(p)" title="重命名"><svg viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+            <button class="icon-btn danger" @click="deleteProd(p)" title="删除"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6h12zM10 11v6M14 11v6"/></svg></button>
           </div>
           <span class="cnt">{{db.requirements.filter(r=>r.product_id===p.id).length}}</span>
         </div>
@@ -244,8 +252,7 @@ const App = {
         <div class="cards-grid" v-if="filtered.length">
           <div class="card" v-for="r in filtered" :key="r.id"
             :class="{'done-card': r.status==='完成'}"
-            :style="{'--card-accent': PRIO_COLOR[r.priority]||'#3b82f6'}"
-            @click="openEdit(r)">
+            :style="{'--card-accent': PRIO_COLOR[r.priority]||'#3b82f6'}">
             <div class="prod-label" v-if="!selProd">{{r.product_name}}</div>
             <div class="card-hd">
               <div class="card-title">{{r.name}}</div>
@@ -254,7 +261,10 @@ const App = {
             <div class="card-desc" v-if="r.description">{{r.description}}</div>
             <div class="card-meta">
               <span class="tag" :class="PRIO_CLASS[r.priority]">{{r.priority}}</span>
-              <span class="tag" :class="STATUS_CLASS[r.status]||'s-other'">{{r.status}}</span>
+              <select class="status-sel" :class="STATUS_CLASS[r.status]||'s-other'" :value="r.status" @click.stop @change="changeStatus(r,$event.target.value)">
+                <option>未开始</option><option>需求整理</option><option>设计中</option>
+                <option>开发中</option><option>测试中</option><option>完成</option>
+              </select>
               <span class="tag vtag" v-if="r.version_name">{{r.version_name}}</span>
               <span class="tag dtag" v-if="r.planned_date">📅 {{r.planned_date}}</span>
             </div>
@@ -267,9 +277,10 @@ const App = {
             <div class="card-ft" style="border-top:none;padding-top:4px;margin-top:4px">
               <span class="card-ft-left" v-if="r.created_at">创建于 {{fmtDate(r.created_at)}}</span>
               <div class="card-actions">
-                <button class="btn-text" v-if="!r.zentao_id" @click.stop="pushZentao(r)" title="推送禅道" style="color:#10b981">⬆</button>
+                <button class="icon-btn success" v-if="!r.zentao_id" @click.stop="pushZentao(r)" title="推送禅道"><svg viewBox="0 0 24 24"><path d="M12 19V5m0 0l-7 7m7-7l7 7"/></svg></button>
                 <span class="ztag" v-if="r.zentao_id" @click.stop>禅道#{{r.zentao_id}}</span>
-                <button class="btn-text btn-danger" @click.stop="deleteReq(r)" title="删除">🗑</button>
+                <button class="icon-btn" @click.stop="openEdit(r)" title="编辑"><svg viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+                <button class="icon-btn danger" @click.stop="deleteReq(r)" title="删除"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6h12zM10 11v6M14 11v6"/></svg></button>
               </div>
             </div>
           </div>
@@ -288,7 +299,7 @@ const App = {
     <div class="modal">
       <div class="modal-hd">
         <h3>{{showEdit?'编辑需求':'新增需求'}}</h3>
-        <button class="btn-text" @click="closeModal">✕</button>
+        <button class="icon-btn" @click="closeModal"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
       <div class="modal-body">
         <div class="form-row">
@@ -348,12 +359,11 @@ const App = {
       </div>
     </div>
   </div>
-</div>
 
   <!-- Zentao Config Modal -->
   <div class="overlay" v-if="showZentao" @click.self="showZentao=false">
     <div class="modal" style="width:520px">
-      <div class="modal-hd"><h3>禅道配置</h3><button class="btn-text" @click="showZentao=false">✕</button></div>
+      <div class="modal-hd"><h3>禅道配置</h3><button class="icon-btn" @click="showZentao=false"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
       <div class="modal-body">
         <div class="proxy-status" :class="proxyOnline?'proxy-ok':'proxy-err'">
           <span class="proxy-dot"></span>
@@ -377,7 +387,7 @@ const App = {
   <!-- Zentao Push Dialog -->
   <div class="overlay" v-if="showPushDlg" @click.self="showPushDlg=false">
     <div class="modal" style="width:480px">
-      <div class="modal-hd"><h3>推送到禅道</h3><button class="btn-text" @click="showPushDlg=false">✕</button></div>
+      <div class="modal-hd"><h3>推送到禅道</h3><button class="icon-btn" @click="showPushDlg=false"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
       <div class="modal-body">
         <div class="proxy-status" :class="proxyOnline?'proxy-ok':'proxy-err'" style="margin-bottom:16px">
           <span class="proxy-dot"></span>
@@ -411,7 +421,7 @@ const App = {
   <!-- Add Product Dialog -->
   <div class="overlay" v-if="showAddProd" @click.self="showAddProd=false">
     <div class="modal" style="width:400px">
-      <div class="modal-hd"><h3>新增产品线</h3><button class="btn-text" @click="showAddProd=false">✕</button></div>
+      <div class="modal-hd"><h3>新增产品线</h3><button class="icon-btn" @click="showAddProd=false"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
       <div class="modal-body">
         <div class="form-row"><label class="form-label req">产品名称</label><input class="form-input" v-model="newProdName" placeholder="输入产品线名称"></div>
       </div>
@@ -422,14 +432,14 @@ const App = {
   <!-- Rename Product Dialog -->
   <div class="overlay" v-if="showRenameProd" @click.self="showRenameProd=false">
     <div class="modal" style="width:400px">
-      <div class="modal-hd"><h3>重命名产品线</h3><button class="btn-text" @click="showRenameProd=false">✕</button></div>
+      <div class="modal-hd"><h3>重命名产品线</h3><button class="icon-btn" @click="showRenameProd=false"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
       <div class="modal-body">
         <div class="form-row"><label class="form-label req">新名称</label><input class="form-input" v-model="renameProdName" placeholder="输入新的产品线名称"></div>
       </div>
       <div class="modal-ft"><button class="btn" @click="showRenameProd=false">取消</button><button class="btn btn-primary" @click="confirmRenameProd">保存</button></div>
     </div>
   </div>
-</div>`,
+</div>`, 
 
   setup() {
     const db = ref({ products:[], versions:[], requirements:[] });
@@ -538,9 +548,21 @@ const App = {
     }
 
     async function deleteReq(r) {
-      if (!confirm(`确定删除「${r.name}」？`)) return;
-      db.value.requirements = db.value.requirements.filter(x => x.id !== r.id);
-      await persist();
+      if (!confirm('确定删除「' + r.name + '」？')) return;
+      try {
+        db.value.requirements = db.value.requirements.filter(x => x.id !== r.id);
+        selectedIds.value = selectedIds.value.filter(id => id !== r.id);
+        await persist();
+      } catch(e) { alert('删除失败: ' + e.message); }
+    }
+
+    async function changeStatus(r, newStatus) {
+      const idx = db.value.requirements.findIndex(x => x.id === r.id);
+      if (idx >= 0) {
+        db.value.requirements[idx].status = newStatus;
+        db.value.requirements[idx].updated_at = nowISO();
+        await persist();
+      }
     }
 
     function toggleSel(id) {
@@ -626,10 +648,12 @@ const App = {
     }
 
     async function batchDelete() {
-      if (!confirm(`确定删除选中的 ${selectedIds.value.length} 条需求？`)) return;
-      db.value.requirements = db.value.requirements.filter(x => !selectedIds.value.includes(x.id));
-      selectedIds.value = [];
-      await persist();
+      if (!confirm('确定删除选中的 ' + selectedIds.value.length + ' 条需求？')) return;
+      try {
+        db.value.requirements = db.value.requirements.filter(x => !selectedIds.value.includes(x.id));
+        selectedIds.value = [];
+        await persist();
+      } catch(e) { alert('删除失败: ' + e.message); }
     }
 
     function saveZtConfig() {
@@ -695,7 +719,7 @@ const App = {
       showAdd, showEdit, showZentao, showPushDlg, form, filtered, statusCounts, selectedIds,
       ztConfig, proxyOnline, pushTarget, pushProdId, pushProdName, pushing,
       showAddProd, newProdName, showRenameProd, renameProdName,
-      openEdit, closeModal, saveReq, deleteReq, toggleSel,
+      openEdit, closeModal, saveReq, deleteReq, toggleSel, changeStatus,
       pushZentao, batchPushZentao, confirmPush, checkProxy, batchDelete, saveZtConfig,
       addProd, openRenameProd, confirmRenameProd, deleteProd,
       fmtDate, PRIO_CLASS, PRIO_COLOR, STATUS_CLASS, STATUS_BADGE, STATUS_ORDER };
