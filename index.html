@@ -313,13 +313,13 @@ const App = {
           <button class="btn btn-sm" v-if="selectedIds.length" @click="batchPushZentao" style="background:#f59e0b;color:#fff;border-color:#f59e0b">批量推送禅道 ({{selectedIds.length}})</button>
           <button class="btn btn-sm" v-if="selectedIds.length" @click="batchDelete" style="background:#ef4444;color:#fff;border-color:#ef4444">批量删除 ({{selectedIds.length}})</button>
           <button class="btn btn-sm btn-primary" @click="openAdd()">＋ 新增需求</button>
-          <button class="btn btn-sm" :class="isDirty ? 'btn-dirty' : 'btn-success'" :disabled="saving" @click="persist" title="保存修改同步到云端" style="display:inline-flex;align-items:center;gap:6px">
+          <button class="btn btn-sm btn-success" :disabled="saving" @click="persist" title="保存修改同步到云端" style="display:inline-flex;align-items:center;gap:6px">
             <svg class="save-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4798">
               <path d="M712.4 115.5c-11 0-20 9-20 20v353.7c0 11-9 20-20 20h-369c-11 0-20-9-20-20V135.5c0-11-9-20-20-20h-15c-11 0-20 9-20 20v409c0 11 9 20 20 20h479.3c11 0 20-9 20-20v-409c0-11-9-20-20-20h-15.3z" fill="#ffffff" p-id="4799"></path>
               <path d="M615 388.4c0 11-9 20-20 20h-14.9c-11 0-20-9-20-20V220.9c0-11 9-20 20-20H595c11 0 20 9 20 20v167.5z" fill="#ffffff" p-id="4800"></path>
               <path d="M118 98.2c-11 0-20 9-20 20v789.3c0 11 9 20 20 20h740.1c11 0 20-9 20-20V118.2c0-11-9-20-20-20H118z m705.1 754.4c0 11-9 20-20 20H173c-11 0-20-9-20-20V173.2c0-11 9-20 20-20h630.2c11 0 20 9 20 20v679.4z" fill="#ffffff" p-id="4801"></path>
             </svg>
-            <span>{{ saving ? '保存中...' : '保存' }}</span>
+            <span>{{ saving ? '保存中' : '保存' }}</span>
             <span v-if="isDirty && !saving" class="dirty-dot"></span>
           </button>
         </div>
