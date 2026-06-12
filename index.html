@@ -239,7 +239,7 @@ const App = {
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn btn-sm" v-if="selectedIds.length" @click="batchPushZentao" style="background:#f59e0b;color:#fff;border-color:#f59e0b">批量推送禅道 ({{selectedIds.length}})</button>
           <button class="btn btn-sm" v-if="selectedIds.length" @click="batchDelete" style="background:#ef4444;color:#fff;border-color:#ef4444">批量删除 ({{selectedIds.length}})</button>
-          <button class="btn btn-sm btn-primary" @click="showAdd=true">＋ 新增需求</button>
+          <button class="btn btn-sm btn-primary" @click="openAdd()">＋ 新增需求</button>
         </div>
       </div>
 
@@ -500,21 +500,17 @@ const App = {
     async function load() {
       loading.value = true;
       try {
-        // Try localStorage first for instant load
         const cached = lsGet();
         if (cached && cached.requirements) {
+          // localStorage has data — use it as primary source
           db.value = cached;
-        }
-        // Then fetch latest from GitHub and merge
-        try {
+        } else {
+          // No local data (first visit) — fetch from GitHub
           const remote = await ghGet();
           if (remote && remote.requirements) {
             db.value = remote;
             lsSave(remote);
           }
-        } catch(e) {
-          console.warn('GitHub fetch failed, using local cache:', e.message);
-          if (!cached) throw e; // No cache either — truly failed
         }
       } catch(e) {
         alert('加载失败: ' + e.message);
@@ -567,6 +563,13 @@ const App = {
     }
 
     function closeModal() { showAdd.value=false; showEdit.value=false; form.value=emptyForm(); }
+
+    function openAdd() {
+      form.value = emptyForm();
+      if (selProd.value) form.value.product_id = selProd.value;
+      if (fVer.value) form.value.version_id = fVer.value;
+      showAdd.value = true;
+    }
 
     async function saveReq() {
       if (!form.value.product_id || !form.value.name.trim()) { alert('请填写产品线和功能名称'); return; }
@@ -766,7 +769,7 @@ const App = {
       showAdd, showEdit, showZentao, showPushDlg, form, filtered, statusCounts, selectedIds,
       ztConfig, proxyOnline, pushTarget, pushProdId, pushProdName, pushing,
       showAddProd, newProdName, showRenameProd, renameProdName,
-      openEdit, closeModal, saveReq, deleteReq, toggleSel, changeStatus,
+      openAdd, openEdit, closeModal, saveReq, deleteReq, toggleSel, changeStatus,
       pushZentao, batchPushZentao, confirmPush, checkProxy, batchDelete, saveZtConfig,
       addProd, openRenameProd, confirmRenameProd, deleteProd,
       fmtDate, PRIO_CLASS, PRIO_COLOR, STATUS_CLASS, STATUS_BADGE, STATUS_ORDER };
