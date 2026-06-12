@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>BV产品需求池管理</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -229,21 +232,41 @@ function lsSave(data) {
 
 // --- GitHub helpers ---
 async function ghGet() {
-  const r = await fetch(RAW_URL + '?t=' + Date.now());
+  const r = await fetch(RAW_URL + '?t=' + Date.now(), {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
+    signal: AbortSignal.timeout(10000)
+  });
   if (!r.ok) throw new Error('GitHub fetch failed: ' + r.status);
   return r.json();
 }
 
 async function ghPut(data) {
-  const meta = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`,
-    { headers: { Authorization: `token ${TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+  const meta = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`, {
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
+    signal: AbortSignal.timeout(10000)
+  });
   if (!meta.ok) throw new Error('Failed to get file SHA: ' + meta.status);
   const { sha } = await meta.json();
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
   const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`, {
     method: 'PUT',
-    headers: { Authorization: `token ${TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'update: requirements data', content, sha })
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
+    body: JSON.stringify({ message: 'update: requirements data', content, sha }),
+    signal: AbortSignal.timeout(10000)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -319,8 +342,7 @@ const App = {
               <path d="M615 388.4c0 11-9 20-20 20h-14.9c-11 0-20-9-20-20V220.9c0-11 9-20 20-20H595c11 0 20 9 20 20v167.5z" fill="#ffffff" p-id="4800"></path>
               <path d="M118 98.2c-11 0-20 9-20 20v789.3c0 11 9 20 20 20h740.1c11 0 20-9 20-20V118.2c0-11-9-20-20-20H118z m705.1 754.4c0 11-9 20-20 20H173c-11 0-20-9-20-20V173.2c0-11 9-20 20-20h630.2c11 0 20 9 20 20v679.4z" fill="#ffffff" p-id="4801"></path>
             </svg>
-            <span>{{ saving ? '保存中' : '保存' }}</span>
-            <span v-if="isDirty && !saving" class="dirty-dot"></span>
+            <span>{{ saving ? '保存中...' : '保存' }}</span>
           </button>
         </div>
       </div>
