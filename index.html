@@ -169,6 +169,18 @@ textarea.form-input{resize:vertical;min-height:80px}
   display: inline-block;
   vertical-align: middle;
 }
+.btn-success:disabled {
+  background: var(--blue) !important;
+  color: #fff !important;
+  border-color: var(--blue) !important;
+  cursor: not-allowed;
+}
+.btn-dirty:disabled {
+  background: #f59e0b !important;
+  color: #fff !important;
+  border-color: #f59e0b !important;
+  cursor: not-allowed;
+}
 
 /* Loading animations */
 .loading-wrap {
@@ -802,13 +814,14 @@ const App = {
       try {
         await ghPut(db.value);
         lsSave(db.value);
-        isDirty.value = false;
         alert('数据同步保存成功！');
+        isDirty.value = false;
       } catch(e) {
         console.error('GitHub sync failed:', e.message);
         alert('同步保存失败: ' + e.message);
+      } finally {
+        saving.value = false;
       }
-      saving.value = false;
     }
 
     const filtered = computed(() => {
