@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>BV 产品需求路线图</title>
+<title>BV产品需求池管理</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -141,23 +141,41 @@ const _a = 'ghp_Wkv0dtO2Mi6PCLIwnM8Jbe'; const _b = 'ePtX3Vl32Pmb4m';
 const TOKEN = _a + _b;
 const DATA_PATH = 'data/db.json';
 const RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${DATA_PATH}`;
+const LS_KEY = 'bv_req_db';
 
+// --- localStorage helpers ---
+function lsGet() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function lsSave(data) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch {}
+}
+
+// --- GitHub helpers ---
 async function ghGet() {
   const r = await fetch(RAW_URL + '?t=' + Date.now());
+  if (!r.ok) throw new Error('GitHub fetch failed: ' + r.status);
   return r.json();
 }
 
-async function ghPut(db) {
-  // get current sha
+async function ghPut(data) {
   const meta = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`,
     { headers: { Authorization: `token ${TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+  if (!meta.ok) throw new Error('Failed to get file SHA: ' + meta.status);
   const { sha } = await meta.json();
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2))));
-  await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`, {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+  const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`, {
     method: 'PUT',
     headers: { Authorization: `token ${TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: 'update: requirements data', content, sha })
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error('GitHub save failed: ' + (err.message || res.status));
+  }
 }
 
 const STATUS_CLASS = { '完成':'s-done','测试中':'s-testing','开发中':'s-dev','未开始':'s-pending','需求整理':'s-planning','设计中':'s-planning' };
@@ -180,7 +198,7 @@ const App = {
 
   <!-- Header -->
   <header class="header">
-    <div class="logo"><div class="logo-icon">📋</div><span>BV 产品需求路线图</span></div>
+    <div class="logo"><div class="logo-icon">📋</div><span>BV产品需求池管理</span></div>
     <div class="header-actions">
       <button class="btn btn-sm" @click="showZentao=true">⚙ 禅道配置</button>
     </div>
@@ -252,7 +270,8 @@ const App = {
         <div class="cards-grid" v-if="filtered.length">
           <div class="card" v-for="r in filtered" :key="r.id"
             :class="{'done-card': r.status==='完成'}"
-            :style="{'--card-accent': PRIO_COLOR[r.priority]||'#3b82f6'}">
+            :style="{'--card-accent': PRIO_COLOR[r.priority]||'#3b82f6'}"
+            @click="openEdit(r)">
             <div class="prod-label" v-if="!selProd">{{r.product_name}}</div>
             <div class="card-hd">
               <div class="card-title">{{r.name}}</div>
@@ -480,13 +499,41 @@ const App = {
 
     async function load() {
       loading.value = true;
-      try { db.value = await ghGet(); } catch(e){ alert('加载失败:'+e.message); }
+      try {
+        // Try localStorage first for instant load
+        const cached = lsGet();
+        if (cached && cached.requirements) {
+          db.value = cached;
+        }
+        // Then fetch latest from GitHub and merge
+        try {
+          const remote = await ghGet();
+          if (remote && remote.requirements) {
+            db.value = remote;
+            lsSave(remote);
+          }
+        } catch(e) {
+          console.warn('GitHub fetch failed, using local cache:', e.message);
+          if (!cached) throw e; // No cache either — truly failed
+        }
+      } catch(e) {
+        alert('加载失败: ' + e.message);
+      }
       loading.value = false;
     }
 
     async function persist() {
       saving.value = true;
-      try { await ghPut(db.value); } catch(e){ alert('保存失败:'+e.message); }
+      // Always save to localStorage first (immediate)
+      lsSave(db.value);
+      // Then sync to GitHub (async)
+      try {
+        await ghPut(db.value);
+      } catch(e) {
+        console.error('GitHub sync failed:', e.message);
+        // Data is safe in localStorage, show non-blocking notice
+        alert('本地已保存，但云端同步失败: ' + e.message);
+      }
       saving.value = false;
     }
 
